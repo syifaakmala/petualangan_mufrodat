@@ -1,0 +1,55 @@
+
+name: Import Petualangan Mufradat
+
+on:
+  push:
+    paths:
+      - 'petualangan-mufradat-paket-pengganti-github-vercel.zip'
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract website
+        run: |
+          set -euo pipefail
+
+          ZIP_FILE="petualangan-mufradat-paket-pengganti-github-vercel.zip"
+
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "ZIP tidak ditemukan"
+            exit 1
+          fi
+
+          mkdir -p /tmp/site-import
+          unzip -q "$ZIP_FILE" -d /tmp/site-import
+
+          SOURCE="/tmp/site-import/petualangan-mufradat"
+
+          test -f "$SOURCE/package.json"
+
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name '.github' \
+            -exec rm -rf {} +
+
+          cp -a "$SOURCE/." .
+          rm -f "$ZIP_FILE"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Import complete Petualangan Mufradat"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
